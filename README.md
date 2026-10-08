@@ -148,6 +148,7 @@ Las pruebas no necesitan el CRM simulado ni una clave de OpenAI: las respuestas 
 - **Reintento ante salidas inválidas del modelo** (por ejemplo, reenviar el error de validación al modelo una vez) antes de responder `502`.
 - **Zona horaria en SQLite:** SQLite no guarda zona horaria, así que `creado_en` vuelve sin ella; en PostgreSQL se conserva. Con más tiempo normalizaría a UTC explícito al leer.
 - **Autenticación, rate limiting y observabilidad** (logs estructurados y trazas del grafo), necesarios antes de exponer el servicio.
+- **Evitar que la respuesta sugerida invente datos.** Al probar con OpenAI (`gpt-4o-mini`), ante una consulta comercial sobre el plan premium el modelo inventó un precio (USD 29.99 al mes) y beneficios del plan, aunque el prompt ya pide no inventar datos. Haría la instrucción explícita (no mencionar precios, beneficios, plazos ni compromisos que no estén en los datos del cliente y, en su lugar, derivar al área correspondiente) y agregaría una prueba con ese caso. Como la respuesta es una sugerencia para un agente humano y no se envía automáticamente, el riesgo hoy es acotado.
 
 ## Notas sobre el enunciado
 

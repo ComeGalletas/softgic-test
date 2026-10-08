@@ -88,6 +88,24 @@ docker run -p 8000:8000 -e CRM_URL=http://host.docker.internal:9000 analisis-sol
 
 La imagen corre con un usuario sin privilegios y guarda la base SQLite en `/app/data` (se puede montar un volumen ahí o pasar un `DATABASE_URL` de PostgreSQL). Para usar OpenAI dentro del contenedor: `docker run --env-file .env ...`. El `.env` nunca se copia a la imagen (`.dockerignore`).
 
+## Entorno de pruebas con Docker Compose
+
+`docker-compose.yml` levanta el servicio completo: la API, el CRM simulado y PostgreSQL.
+
+```bash
+docker compose up -d --build --wait
+python scripts/demo.py
+```
+
+- `--wait` espera a que la API responda (tiene un healthcheck) antes de devolver el control.
+- La API queda en `http://localhost:8000` (documentación en `/docs`) y el CRM simulado en `http://localhost:9000`.
+- Dentro de la red de Compose la API usa `CRM_URL=http://crm:9000` y PostgreSQL; estos valores tienen prioridad sobre el `.env`.
+- Si existe un `.env` con `OPENAI_API_KEY`, la API usa OpenAI; si no, el modelo fake.
+- `scripts/demo.py` envía cuatro solicitudes de ejemplo (facturación, comercial, técnica y un intento de inyección de prompt), muestra la clasificación, los datos del CRM, los tokens, el costo y la respuesta, y prueba el `GET` y el `404`.
+- Los reintentos del CRM se ven en `docker compose logs api` (líneas `CRM attempt ... retrying`).
+- Para inspeccionar la base: `docker compose exec db psql -U solicitudes -d solicitudes -c "select * from analisis;"`.
+- Para detener todo y borrar los datos: `docker compose down -v`.
+
 ## Pruebas
 
 ```bash
@@ -99,6 +117,7 @@ Las pruebas no necesitan el CRM simulado ni una clave de OpenAI: las respuestas 
 - `tests/test_graph.py`: prioridad alta consulta el CRM y la respuesta recibe los datos del cliente; prioridad baja no lo consulta; un CRM caído no detiene el análisis; el texto de la solicitud no puede cerrar su bloque de datos.
 - `tests/test_retry.py`: éxito al tercer intento con backoff 0.5 s y 1 s; agotamiento de intentos ante 429; un timeout se reintenta; un 404 no se reintenta.
 - `tests/test_api.py`: el análisis se persiste y se recupera; reenviar el mismo `id` lo actualiza; un `id` inexistente da 404.
+- `tests/test_persistence.py`: sin datos del cliente, `cliente_info` queda como `NULL` de SQL y no como el valor JSON `null`.
 
 ## Decisiones de diseño
 
@@ -118,7 +137,7 @@ Las pruebas no necesitan el CRM simulado ni una clave de OpenAI: las respuestas 
 
 **Endpoints síncronos.** El grafo, el cliente HTTP y SQLAlchemy son bloqueantes, así que declaré los endpoints con `def` para que FastAPI los ejecute en su pool de hilos sin bloquear el event loop.
 
-**Persistencia.** SQLAlchemy 2 con un motor creado desde `DATABASE_URL`; para SQLite agrego `check_same_thread=False`. Las tablas se crean en el `lifespan` de FastAPI. El driver de PostgreSQL (`psycopg[binary]`) es un extra opcional del paquete y viene instalado en la imagen de Docker.
+**Persistencia.** SQLAlchemy 2 con un motor creado desde `DATABASE_URL`; para SQLite agrego `check_same_thread=False`. Las tablas se crean en el `lifespan` de FastAPI. `cliente_info` usa `JSON(none_as_null=True)` para que la ausencia de datos del cliente se guarde como `NULL` de SQL (por defecto SQLAlchemy guarda el valor JSON `null`, y entonces `WHERE cliente_info IS NULL` no encuentra esas filas). El driver de PostgreSQL (`psycopg[binary]`) es un extra opcional del paquete y viene instalado en la imagen de Docker.
 
 ## Pendiente y lo que haría con más tiempo
 

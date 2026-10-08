@@ -1,0 +1,51 @@
+# Local test environment: API + mock CRM + PostgreSQL.
+# Without a .env file the API uses the fake model; with OPENAI_API_KEY in .env it uses OpenAI.
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Take precedence over .env so the containers talk to each other.
+      CRM_URL: http://crm:9000
+      DATABASE_URL: postgresql+psycopg://solicitudes:solicitudes@db:5432/solicitudes
+    depends_on:
+      db:
+        condition: service_healthy
+      crm:
+        condition: service_started
+    healthcheck:
+      # The slim image has no curl; Python is already there.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  crm:
+    # Reuses the API image (it already has FastAPI and uvicorn) and mounts the mock as-is.
+    build: .
+    command: ["uvicorn", "mock_crm:app", "--host", "0.0.0.0", "--port", "9000"]
+    volumes:
+      - ./mock_crm.py:/app/mock_crm.py:ro
+    ports:
+      - "9000:9000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: solicitudes
+      POSTGRES_PASSWORD: solicitudes
+      POSTGRES_DB: solicitudes
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solicitudes -d solicitudes"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:

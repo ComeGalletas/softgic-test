@@ -35,10 +35,12 @@ Requiere Python 3.11 o superior.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1 · Git Bash: source .venv/Scripts/activate
 pip install -e ".[dev]"          # agregar ",postgres" para usar PostgreSQL: ".[dev,postgres]"
 cp .env.example .env             # opcional; sin .env se usan los valores por defecto
 ```
+
+Sin `OPENAI_API_KEY` se usa el modelo fake, que devuelve siempre la misma clasificación (`tecnico` / `alta`) y la misma respuesta; sirve para probar el flujo completo, pero no la calidad del análisis. El camino de prioridad baja se ve con una clave de OpenAI o en las pruebas automáticas.
 
 ## Configuración
 
@@ -72,11 +74,25 @@ En otra, la API:
 uvicorn app.main:app --port 8000
 ```
 
-Prueba rápida:
+Prueba rápida con el script de demostración (funciona igual en Linux, macOS y Windows):
+
+```bash
+python scripts/demo.py
+```
+
+O a mano con `curl` (Linux, macOS o Git Bash):
 
 ```bash
 curl -X POST http://localhost:8000/solicitudes/analizar -H "Content-Type: application/json" -d '{"id":"sol-1","texto":"No puedo acceder a mi cuenta desde ayer","cliente_id":"cli-42"}'
 curl http://localhost:8000/solicitudes/sol-1
+```
+
+En Windows PowerShell el comando anterior no funciona (`curl` es un alias de `Invoke-WebRequest` y las comillas del JSON se pierden); el equivalente es:
+
+```powershell
+$body = @{ id = "sol-1"; texto = "No puedo acceder a mi cuenta desde ayer"; cliente_id = "cli-42" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/solicitudes/analizar -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($body))
+Invoke-RestMethod http://localhost:8000/solicitudes/sol-1
 ```
 
 ## Docker

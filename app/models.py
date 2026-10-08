@@ -21,7 +21,8 @@ class Analisis(Base):
     categoria: Mapped[str] = mapped_column(String(20))
     prioridad: Mapped[str] = mapped_column(String(10))
     respuesta_sugerida: Mapped[str] = mapped_column(Text)
-    cliente_info: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # none_as_null: store "no customer data" as SQL NULL, not as the JSON value 'null', so IS NULL queries work.
+    cliente_info: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True), nullable=True)
     tokens_entrada: Mapped[int] = mapped_column(Integer, default=0)
     tokens_salida: Mapped[int] = mapped_column(Integer, default=0)
     costo_estimado: Mapped[float] = mapped_column(Float, default=0.0)

@@ -35,4 +35,5 @@ def count_usage(prompt: Sequence[BaseMessage], completion: AIMessage) -> tuple[i
 
 
 def estimate_cost(tokens_in: int, tokens_out: int, price_in_per_million: float, price_out_per_million: float) -> float:
-    return tokens_in / 1e6 * price_in_per_million + tokens_out / 1e6 * price_out_per_million
+    # USD; rounded to remove float noise (sub-cent precision is plenty for cost tracking).
+    return round(tokens_in / 1e6 * price_in_per_million + tokens_out / 1e6 * price_out_per_million, 8)

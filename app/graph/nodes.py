@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
@@ -36,7 +37,7 @@ PROPONER_SYSTEM = (
 
 def _data_block(tag: str, content: str) -> str:
     # Strip the delimiters from the content so it cannot close its own block.
-    safe = content.replace(f"<{tag}>", "").replace(f"</{tag}>", "")
+    safe = re.sub(rf"<\s*/?\s*{tag}\s*>", "", content, flags=re.IGNORECASE)
     return f"<{tag}>\n{safe}\n</{tag}>"
 
 

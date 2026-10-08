@@ -1,6 +1,7 @@
 import json
 from typing import TypeVar
 
+from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models import BaseChatModel, FakeListChatModel
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
@@ -53,7 +54,8 @@ def invoke_structured(llm: BaseChatModel, schema: type[T], messages: list[BaseMe
     if structured is not None:
         result = structured.invoke(messages)
         if result["parsing_error"] is not None:
-            raise result["parsing_error"]
+            # Normalize to the same exception the parser path raises, so callers handle a single type.
+            raise OutputParserException(str(result["parsing_error"])) from result["parsing_error"]
         tokens_in, tokens_out = count_usage(messages, result["raw"])
         return result["parsed"], tokens_in, tokens_out
 

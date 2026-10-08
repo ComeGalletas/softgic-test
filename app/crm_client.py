@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Callable
 from typing import Any, Protocol
+from urllib.parse import quote
 
 import httpx
 
@@ -62,7 +63,8 @@ class HttpCRMClient:
         last_error = ""
         for attempt in range(self._max_attempts):
             try:
-                response = self._http.get(f"/clientes/{cliente_id}")
+                # cliente_id comes from the request body: encode it so it cannot change the path or add a query.
+                response = self._http.get(f"/clientes/{quote(cliente_id, safe='')}")
             except httpx.TransportError as exc:  # includes timeouts and connection errors
                 last_error = f"{type(exc).__name__}: {exc}"
             else:

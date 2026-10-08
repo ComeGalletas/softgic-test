@@ -60,3 +60,12 @@ def test_client_error_is_not_retried(crm, sleeps):
         crm.get_cliente("cli-1")
     assert route.call_count == 1
     assert sleeps == []
+
+
+@respx.mock
+def test_cliente_id_is_url_encoded(crm):
+    route = respx.get(url__startswith=f"{BASE_URL}/clientes/").mock(return_value=httpx.Response(200, json=CLIENTE))
+
+    crm.get_cliente("../admin/usuarios?x=1#y")
+
+    assert route.calls.last.request.url.raw_path == b"/clientes/..%2Fadmin%2Fusuarios%3Fx%3D1%23y"

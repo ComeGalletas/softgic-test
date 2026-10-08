@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "analisis-solicitudes"
+version = "0.1.0"
+description = "Support request analysis service (FastAPI + LangGraph)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "langchain-community>=0.3",
+    "sqlalchemy>=2",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "httpx>=0.27",
+    "tiktoken>=0.7",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8", "respx>=0.21"]
+
+[tool.setuptools]
+packages = ["app", "app.graph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
